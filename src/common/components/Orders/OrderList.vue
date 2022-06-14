@@ -167,7 +167,7 @@ export default {
 
     async getGAByTrackingId(trackingId) {
       const analysisData = await queryGeneticAnalysisByGeneticAnalysisTrackingId(this.api, trackingId)
-      
+
       return analysisData
     },
 
@@ -175,15 +175,20 @@ export default {
       this.isLoading = true
       let orderLists = []
       let orders = []
-      
+
       try {
         const orderData = await GAGetOrders(keyword)
-        
+
         for (const order of orderData.data) {
           const sourceData = order._source
-          
+
+          const servicePrice = parseFloat(this.web3.utils.fromWei(String(sourceData.prices[0]?.value.replaceAll(",", "") || 0), "ether")).toFixed(4)
+          const serviceQCPrice = sourceData.additional_prices?.length
+            ? parseFloat(this.web3.utils.fromWei(String(sourceData.additional_prices[0]?.value.replaceAll(",", "") || 0), "ether")).toFixed(4)
+            : 0
+
           const formatedPrice = `
-            ${Number(this.web3.utils.fromWei(String(sourceData.service_info?.prices_by_currency[0]?.total_price.replaceAll(",", "") || 0), "ether")).toFixed(4)} 
+            ${sourceData.additional_prices?.length ? serviceQCPrice + servicePrice : servicePrice}
             ${sourceData?.currency}
           `
 
@@ -196,32 +201,32 @@ export default {
               month: "short"
             })
           }
-          
+
           if (this.filter.orderStatus.includes(sourceData.status)) orders.push(data)
         }
       } catch (e) {
         console.error(e);
-      } 
-      
+      }
+
       for(const item of orders) {
         let _item = item
         let status = item.status
         const analysisData = await this.getGAByTrackingId(_item.genetic_analysis_tracking_id).catch(() => null)
-        
+
         const GENETIC_STATUS = {
           REGISTERED: "Open",
           INPROGRESS: "In Progress",
           REJECTED: "Rejected",
           RESULTREADY: "Done"
         }
-        
+
         if (analysisData) {
           status = GENETIC_STATUS[analysisData.status.toUpperCase()]
-          
+
           if (this.filter.trackingStatus.includes(status)) orderLists.push({..._item, status})
         }
       }
-      
+
       this.orderLists = orderLists
       this.isLoading = false
     }

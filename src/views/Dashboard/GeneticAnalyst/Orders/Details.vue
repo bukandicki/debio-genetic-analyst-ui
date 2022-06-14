@@ -408,7 +408,6 @@ export default {
   async created() {
     if (this.mnemonicData) this.initialDataKey()
     await this.prepareData(this.$route.params.id)
-
   },
 
   rules: {
@@ -461,6 +460,11 @@ export default {
         const geneticLinkName = await getIpfsMetaData(JSON.parse(geneticData.reportLink)[0].split("/").pop())
         const analystReportDocument = await getIpfsMetaData(analysisData.reportLink.split("/").pop())
 
+        const servicePrice = parseFloat(this.web3.utils.fromWei(String(data.prices[0]?.value.replaceAll(",", "") || 0), "ether")).toFixed(4)
+        const serviceQCPrice = data.additional_prices?.length
+          ? parseFloat(this.web3.utils.fromWei(String(data.additional_prices[0]?.value.replaceAll(",", "") || 0), "ether")).toFixed(4)
+          : 0
+
         this.orderDataDetails = {
           ...data,
           analysis_info: {
@@ -485,7 +489,7 @@ export default {
             ...serviceData,
             ...serviceData.info,
             price: `
-              ${Number(this.web3.utils.fromWei(String(serviceData.info.pricesByCurrency[0].totalPrice.replaceAll(",", "") || 0), "ether")).toFixed(4)}
+              ${data.additional_prices?.length ? serviceQCPrice + servicePrice : servicePrice}
               ${serviceData.info.pricesByCurrency[0].currency}
             `,
             expectedDuration: `${serviceData.info.expectedDuration.duration} ${serviceData.info.expectedDuration.durationType}`
